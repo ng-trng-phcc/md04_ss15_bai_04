@@ -2,6 +2,7 @@ package com.example.identityservice.service;
 
 import com.example.identityservice.entity.RefreshToken;
 import com.example.identityservice.entity.User;
+import com.example.identityservice.exception.TokenRefreshException;
 import com.example.identityservice.repository.RefreshTokenRepository;
 import com.example.identityservice.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -43,9 +44,14 @@ public class RefreshTokenService {
     public RefreshToken verifyExpiration(RefreshToken token) {
         if (token.getExpiryDate().isBefore(Instant.now())) {
             refreshTokenRepository.delete(token);
-            throw new RuntimeException("Refresh token expired: " + token.getToken());
+            throw new TokenRefreshException("Refresh token expired: " + token.getToken());
         }
         return token;
+    }
+
+    @Transactional
+    public void delete(RefreshToken token) {
+        refreshTokenRepository.delete(token);
     }
 
     @Transactional

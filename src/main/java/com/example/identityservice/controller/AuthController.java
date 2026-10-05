@@ -2,8 +2,10 @@ package com.example.identityservice.controller;
 
 import com.example.identityservice.dto.LoginRequest;
 import com.example.identityservice.dto.LoginResponse;
+import com.example.identityservice.dto.RefreshTokenRequest;
 import com.example.identityservice.dto.RegisterRequest;
 import com.example.identityservice.entity.User;
+import com.example.identityservice.exception.TokenRefreshException;
 import com.example.identityservice.repository.UserRepository;
 import com.example.identityservice.service.AuthService;
 import com.example.identityservice.util.JwtUtil;
@@ -53,6 +55,16 @@ public class AuthController {
             return ResponseEntity.ok(response);
         } catch (BadCredentialsException e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Bad credentials");
+        }
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<?> refresh(@RequestBody RefreshTokenRequest request) {
+        try {
+            LoginResponse response = authService.refreshToken(request.getRefreshToken());
+            return ResponseEntity.ok(response);
+        } catch (TokenRefreshException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
         }
     }
 }
