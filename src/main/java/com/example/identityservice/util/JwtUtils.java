@@ -46,6 +46,24 @@ public class JwtUtils {
                 .getSubject();
     }
 
+    public String getJtiFromToken(String token) {
+        return Jwts.parserBuilder()
+                .setSigningKey(getSigningKey())
+                .build()
+                .parseClaimsJws(token)
+                .getBody()
+                .getId();
+    }
+
+    public Date getExpirationFromToken(String token) {
+        return Jwts.parserBuilder()
+                .setSigningKey(getSigningKey())
+                .build()
+                .parseClaimsJws(token)
+                .getBody()
+                .getExpiration();
+    }
+
     public boolean validateToken(String token) {
         try {
             Jwts.parserBuilder()

@@ -12,6 +12,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Date;
+
 @Service
 @RequiredArgsConstructor
 public class AuthService {
@@ -20,6 +22,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtUtils jwtUtils;
     private final RefreshTokenService refreshTokenService;
+    private final TokenBlacklistService blacklistService;
 
     public LoginResponse login(String username, String rawPassword) {
         User user = userRepository.findByUsername(username)
@@ -56,5 +59,24 @@ public class AuthService {
 
         // 6. Trả về cặp Token mới
         return new LoginResponse(newAccessToken, newRefreshToken.getToken());
+    }
+
+    public void logout(String token) {
+        // 1. Giải mã token để lấy claim "jti" và "exp"
+        String jti = jwtUtils.getJtiFromToken(token);
+        Date expiration = jwtUtils.getExpirationFromToken(token);
+
+        // 2. TTL = exp - now (giây)
+        long ttlSeconds = (expiration.getTime() - System.currentTimeMillis()) / 1000;
+        if (ttlSeconds <= 0) {
+            throw new TokenRefreshException("Token already expired");
+        }
+
+        // 3+4. Lưu blacklist:{jti} = "revoked" với TTL đúng bằng thời gian còn lại của token
+        blacklistService.blacklist(jti, ttlSeconds);
+
+        // 5. Xóa luôn Refresh Token trong PostgreSQL để phiên đăng nhập hết hiệu lực hoàn toàn
+        String username = jwtUtils.getUsernameFromToken(token);
+        userRepository.findByUsername(username).ifPresent(refreshTokenService::deleteByUser);
     }
 }
